@@ -1,4 +1,4 @@
-# $Id: /mirror/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 63615 2008-06-23T03:04:21.231823Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 63985 2008-06-23T12:45:18.967810Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -40,6 +40,16 @@ has '_next_args' => (
     auto_deref => 1,
 );
 
+has '__table' => (
+    is => 'rw',
+    isa => 'Maybe[Str]'
+);
+
+has '__res' => (
+    is => 'rw',
+    isa => 'Maybe[Queue::Q4M::Result]'
+);
+
 __PACKAGE__->meta->make_immutable;
 
 no Moose;
@@ -47,7 +57,7 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00002';
+our $VERSION = '0.00003';
 
 
 sub BUILD
@@ -99,6 +109,10 @@ sub next
 {
     my $self = shift;
     my @args = @_;
+
+    # First, undef any cached table name that we might have had
+    $self->__table(undef);
+
     my @tables = 
         grep { !/^\d+$/ }
         map  {
@@ -138,13 +152,25 @@ sub next
     my ($index) = $sth->fetchrow_array;
     $sth->finish;
 
-    return $rv ?  $tables[$index - 1] : ()
+    my $table = ($rv > 0 && $index > 0) ? $tables[$index - 1] : undef;
+    my $res = Queue::Q4M::Result->new(
+        rv         => $rv > 0,
+        table      => $table,
+        on_release => sub { $self->__table(undef) }
+    );
+
+    if ($rv > 0) {
+        $self->__table($table);
+    }
+    $self->__res($res);
+    return $res;
 }
 
 sub _fetch_execute
 {
     my $self = shift;
-    my $table = shift;
+    my $table = (!@_ || (ref $_[0] && eval { ! $_[0]->isa('Queue::Q4M::Result') })) ? $self->__table : shift;
+    $table or die "no table";
 
     my ($sql, @bind) = $self->sql_maker->select($table, @_);
     my $dbh = $self->dbh;
@@ -211,6 +237,26 @@ sub DEMOLISH
     $self->disconnect;
 }
 
+package
+    Queue::Q4M::Result;
+use overload
+    bool => \&as_bool,
+    '""' => \&as_string,
+    fallback => 1
+;
+use Scope::Guard;
+
+sub new
+{
+    my $class = shift;
+    my %args  = @_;
+    return bless [ $args{rv}, $args{table}, Scope::Guard->new( $args{on_release} ) ], $class;
+}
+
+sub as_bool { $_[0]->[0] }
+sub as_string { $_[0]->[1] }
+sub DESTROY { $_[0]->[2]->dismiss(1) if $_[0]->[2] }
+
 1;
 
 __END__
@@ -251,7 +297,7 @@ Queue::Q4M - Simple Interface To q4m
   }
 
   # to use queue_wait(table_cond1,table_cond2,timeout)
-  while (my $which = $q->next_multi(@table_conds)) {
+  while (my $which = $q->next(@table_conds)) {
     # $which contains the table name
   }
 

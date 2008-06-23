@@ -35,7 +35,6 @@ EOSQL
 {
     my $table = $tables[0];
     my $q = Queue::Q4M->connect(
-        table => $table,
         connect_info => [ $dsn, $username, $password ]
     );
     ok($q);
@@ -48,7 +47,7 @@ EOSQL
     
     my $count = 0;
     while ($q->next($table)) {
-        my $h = $q->fetch_hashref($table);
+        my $h = $q->fetch_hashref();
         $count++;
         last if $h->{v} == $max;
     }
@@ -60,6 +59,7 @@ EOSQL
 {
     my $table = $tables[0];
     my $q = Queue::Q4M->connect(
+        table => $table,
         connect_info => [ $dsn, $username, $password ]
     );
     ok($q);

@@ -1,21 +1,21 @@
---- 
-abstract: Simple Interface To q4m
-author: 
-  - Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
+---
+abstract: 'Simple Interface To q4m'
+author:
+  - 'Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>'
 distribution_type: module
-generated_by: Module::Install version 0.68
+generated_by: 'Module::Install version 0.75'
 license: perl
-meta-spec: 
+meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.3.html
   version: 1.3
 name: Queue-Q4M
-no_index: 
-  directory: 
+no_index:
+  directory:
     - inc
     - t
-requires: 
-  Class::Accessor::Fast: 0
+requires:
   DBI: 0
+  Moose: 0
   SQL::Abstract: 0
-  UNIVERSAL::require: 0
-version: 0.00001
+  Scope::Guard: 0
+version: 0.00003

@@ -6,6 +6,7 @@ all_from('lib/Queue/Q4M.pm');
 
 requires('Moose');
 requires('DBI');
+requires('Scope::Guard');
 requires('SQL::Abstract');
 
 auto_include;

@@ -1,6 +1,11 @@
 Changes
 =======
 
+0.00003 - 23 Jun 2008
+  - Fix a nasty bug in next()
+  - Experimental: You can omit the table name if it's right after ->next call
+    and you're still in the same scope
+
 0.00002 - 23 Jun 2008
   - API incompatiblity! I tried to avoid it, but sorry, this version breaks
     compatiblity, so that you need to keep passing the target table name
