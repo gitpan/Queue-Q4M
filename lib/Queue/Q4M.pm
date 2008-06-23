@@ -1,42 +1,68 @@
-# $Id: /mirror/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 38280 2008-01-09T14:22:00.682385Z daisuke  $
+# $Id: /mirror/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 63615 2008-06-23T03:04:21.231823Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
 
 package Queue::Q4M;
-use strict;
-use warnings;
-use base qw(Class::Accessor::Fast);
+use Moose;
+
+has 'connect_info' => (
+    is => 'rw',
+    isa => 'ArrayRef',
+    required => 1,
+);
+
+has 'database' => (
+    is => 'rw',
+    isa => 'Str'
+);
+
+has 'sql_maker' => (
+    is => 'rw',
+    isa => 'SQL::Abstract',
+    required => 1,
+    default  => sub { SQL::Abstract->new }
+);
+
+has '_dbh' => (
+    is => 'rw',
+    isa => 'Maybe[DBI::db]',
+);
+
+has '_next_sth' => (
+    is => 'rw',
+    isa => 'Maybe[DBI::st]'
+);
+
+has '_next_args' => (
+    is => 'rw',
+    isa => 'ArrayRef',
+    auto_deref => 1,
+);
+
+__PACKAGE__->meta->make_immutable;
+
+no Moose;
+
 use DBI;
-use UNIVERSAL::require;
+use SQL::Abstract;
 
-our $VERSION = '0.00001';
+our $VERSION = '0.00002';
 
-__PACKAGE__->mk_accessors($_) for qw(connect_info database table sql_maker _dbh _next_sth);
 
-sub new
+sub BUILD
 {
-    my $class = shift;
-    my %args  = @_;
+    my $self = shift;
 
-    my $connect_info = $args{connect_info} || die "no connect_info specified";
-
-    my $table = $args{table} || die "No table specified";
-
-    my $sql_maker_class = $args{sql_maker_class} || 'SQL::Abstract';
-    $sql_maker_class->require or die;
-    my $sql_maker = $sql_maker_class->new();
+    my $connect_info = $self->connect_info;
 
     # XXX This is a hack. Hopefully it will be fixed in q4m
-    $connect_info->[0] =~ /(?:dbname|database)=([^;]+)/;
-    my $database = $1;
-
-    $class->SUPER::new( {
-        connect_info => $connect_info,
-        table        => $table,
-        database     => $database,
-        sql_maker    => $sql_maker,
-    });
+    if (! $self->database ) {
+        $connect_info->[0] =~ /(?:dbname|database)=([^;]+)/;
+        my $database = $1;
+        $self->database($1);
+    }
+    $self;
 }
 
 sub connect
@@ -72,34 +98,57 @@ sub dbh
 sub next
 {
     my $self = shift;
+    my @args = @_;
+    my @tables = 
+        grep { !/^\d+$/ }
+        map  {
+            s/\[.*$//;
+            $_
+        }
+        @args
+    ;
 
     # Cache this statement handler so we don't unnecessarily create
     # string or handles
     my $sth = $self->_next_sth;
     if (! $sth) {
         my $dbh = $self->_dbh;
-        $sth = $dbh->prepare(
-            sprintf(
-                "SELECT queue_wait(%s)",
-                $dbh->quote(
-                    join('.', $self->database, $self->table)
-                )
-            )
+        my $sql = sprintf(
+            "SELECT queue_wait(%s)",
+            join(',', (('?') x scalar(@args)))
         );
-        $self->_next_sth($sth);
+        my $timeout = $args[-1] =~ /^\d+$/ ? pop @args  : undef;
+        my @binds   = map {
+            # if no dot exists, then add database\. to the beginning
+            if ( index('.', $_) < 0 ) {
+                $_ = join('.', $self->database, $_);
+            }
+            $_
+        } @args;
+        if ($timeout) {
+            push @binds, $timeout;
+        }
+
+        $sth = $dbh->prepare( $sql ) ;
+        $self->_next_sth( $sth );
+        $self->_next_args( \@binds );
     }
-    my $rv = $sth->execute();
+
+    my $rv = $sth->execute($self->_next_args);
+    my ($index) = $sth->fetchrow_array;
     $sth->finish;
-    return $rv;
+
+    return $rv ?  $tables[$index - 1] : ()
 }
 
 sub _fetch_execute
 {
     my $self = shift;
+    my $table = shift;
 
-    my ($sql, @bind) = $self->sql_maker->select($self->table, @_);
+    my ($sql, @bind) = $self->sql_maker->select($table, @_);
     my $dbh = $self->dbh;
-    my $sth = $dbh->prepare_cached($sql);
+    my $sth = $dbh->prepare($sql);
     $sth->execute(@bind); # XXX - currently always empty
     return $sth;
 }
@@ -135,10 +184,11 @@ sub fetch_hashref
 sub insert
 {
     my $self  = shift;
+    my $table = shift;
 
-    my ($sql, @bind) = $self->sql_maker->insert($self->table, @_);
+    my ($sql, @bind) = $self->sql_maker->insert($table, @_);
     my $dbh = $self->_dbh;
-    my $sth = $dbh->prepare_cached($sql);
+    my $sth = $dbh->prepare($sql);
     my $rv = $sth->execute(@bind);
     $sth->finish;
     return $rv;
@@ -155,7 +205,7 @@ sub disconnect
     }
 }
 
-sub DESTROY
+sub DEMOLISH
 {
     my $self = shift;
     $self->disconnect;
@@ -179,26 +229,30 @@ Queue::Q4M - Simple Interface To q4m
       $username,
       $password
     ],
-    table => 'q4m'
   );
 
   for (1..10) {
-    $q->insert(\%fieldvals);
+    $q->insert($table, \%fieldvals);
   }
 
-  while ($q->next) {
-    my ($col1, $col2, $col3) = $q->fetch(\@fields);
+  while ($q->next($table)) {
+    my ($col1, $col2, $col3) = $q->fetch($table, \@fields);
     print "col1 = $col1, col2 = $col2, col3 = $col3\n";
   }
 
-  while ($q->next) {
-    my $cols = $q->fetch_arrayref(\@fields);
+  while ($q->next($table)) {
+    my $cols = $q->fetch_arrayref($table, \@fields);
     print "col1 = $cols->[0], col2 = $cols->[1], col3 = $cols->[2]\n";
   }
 
-  while ($q->next) {
-    my $cols = $q->fetch_hashref(\@fields);
+  while ($q->next($table)) {
+    my $cols = $q->fetch_hashref($table, \@fields);
     print "col1 = $cols->{col1}, col2 = $cols->{col2}, col3 = $cols->{col3}\n";
+  }
+
+  # to use queue_wait(table_cond1,table_cond2,timeout)
+  while (my $which = $q->next_multi(@table_conds)) {
+    # $which contains the table name
   }
 
   $q->disconnect;
@@ -219,16 +273,17 @@ Creates a new Queue::Q4M instance. Normally you should use connect() instead.
 Connects to the target database.
 
   my $q = Queue::Q4M->connect(
-    table => 'q4m',
     connect_info => [
       'dbi:mysql:dbname=q4m',
     ]
   );
 
-=head2 next
+=head2 next($table_cond1[, $table_cond2, $table_cond3, ..., $timeout])
 
 Blocks until the next item is available. This is equivalent to calling
 queue_wait() on the given table.
+
+  my $which = $q->next( $table_cond1, $table_cond2, $table_cond3 );
 
 =head2 fetch
 
@@ -236,25 +291,30 @@ queue_wait() on the given table.
 
 Fetches the next available row. Takes the list of columns to be fetched.
 
-  my ($col1, $col2, $col3) = $q->fetch( [ qw(col1 col2 col3) ] );
+  my ($col1, $col2, $col3) = $q->fetch( $table, [ qw(col1 col2 col3) ] );
 
 =head2 fetch_arrayref
 
 Same as fetch_array, but fetches using fetchrow_arrayref()
 
-  my $arrayref = $q->fetch_arrayref( [ qw(col1 col2 col3) ] );
+  my $arrayref = $q->fetch_arrayref( $table, [ qw(col1 col2 col3) ] );
 
 =head2 fetch_hashref
 
 Same as fetch_array, but fetches using fetchrow_hashref()
 
-  my $hashref = $q->fetch_arrayref( [ qw(col1 col2 col3) ] );
+  my $hashref = $q->fetch_hashref( $table, [ qw(col1 col2 col3) ] );
 
-=head2 insert
+=head2 insert($table, \%field)
 
-Inserts into the queue.
+Inserts into the queue. The first argument should be a scalar specifying
+a table name. The second argument is a hashref that specifies the mapping
+between column names and their respective values.
 
-  $q->insert({ col1 => $val1, col2 => $val2, col3 => $val3 });
+  $q->insert($table, { col1 => $val1, col2 => $val2, col3 => $val3 });
+
+For backwards compatibility, you may omit $table if you specified $table
+in the constructor.
 
 =head2 dbh
 
@@ -263,6 +323,12 @@ Returns the database handle after making sure that it's connected.
 =head2 disconnect
 
 Disconnects.
+
+=head2 BUILD
+
+=head2 DEMOLISH
+
+These are defined as part of Moose infrastructure
 
 =head1 AUTHOR
 

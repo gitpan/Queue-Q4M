@@ -3,14 +3,10 @@ use Test::More;
 
 BEGIN
 {
-    if (! exists $ENV{Q4M_DSN} ||
-        ! exists $ENV{Q4M_USER} ||
-        ! exists $ENV{Q4M_PASSWORD} ||
-        ! exists $ENV{Q4M_TABLE}
-    ) {
-        plan(skip_all => "Define environment variables Q4M_DSN, Q4M_USER, Q4M_PASSWORD and Q4M_TABLE");
+    if (! exists $ENV{Q4M_DSN} ) {
+        plan(skip_all => "Define environment variables Q4M_DSN, and optionally Q4M_USER and Q4M_PASSWORD as appropriate");
     } else {
-        plan(tests => 36);
+        plan(tests => 42);
     }
     use_ok("Queue::Q4M");
 }
@@ -19,26 +15,93 @@ BEGIN
 my $dsn      = $ENV{Q4M_DSN};
 my $username = $ENV{Q4M_USER};
 my $password = $ENV{Q4M_PASSWORD};
-my $table    = $ENV{Q4M_TABLE};
+my @tables   = map {
+    join('_', qw(q4m test table), $_, $$)
+} 1..10;
 
-my $q = Queue::Q4M->connect(
-    table => $table,
-    connect_info => [ $dsn, $username, $password ]
-);
-ok($q);
-isa_ok($q, "Queue::Q4M");
-
-my $max = 32;
-for my $i (1..$max) {
-    ok($q->insert({ v => $i }));
+if ($dsn !~ /^dbi:mysql:/i) {
+    $dsn = "dbi:mysql:dbname=$dsn";
 }
 
-my $count = 0;
-while ($q->next) {
-    my $h = $q->fetch_hashref;
-    $count++;
-    last if $h->{v} == $max;
+my $dbh = DBI->connect($dsn, $username, $password);
+foreach my $table (@tables) {
+    $dbh->do(<<EOSQL);
+        CREATE TABLE IF NOT EXISTS $table (
+            v INTEGER NOT NULL
+        ) ENGINE=queue;
+EOSQL
 }
 
-is($count, $max);
-$q->disconnect;
+{
+    my $table = $tables[0];
+    my $q = Queue::Q4M->connect(
+        table => $table,
+        connect_info => [ $dsn, $username, $password ]
+    );
+    ok($q);
+    isa_ok($q, "Queue::Q4M");
+    
+    my $max = 32;
+    for my $i (1..$max) {
+        ok($q->insert($table, { v => $i }));
+    }
+    
+    my $count = 0;
+    while ($q->next($table)) {
+        my $h = $q->fetch_hashref($table);
+        $count++;
+        last if $h->{v} == $max;
+    }
+    
+    is($count, $max);
+    $q->disconnect;
+}
+
+{
+    my $table = $tables[0];
+    my $q = Queue::Q4M->connect(
+        connect_info => [ $dsn, $username, $password ]
+    );
+    ok($q);
+    isa_ok($q, "Queue::Q4M");
+
+    diag("Going to block for 5 seconds...");
+    my $before = time();
+    $q->next($table, 5);
+
+    # This time difference could be off by a second or so,
+    # so allow that much diffference
+    my $diff = time() - $before;
+    ok( $diff >= 4, "next() with timeout waited for 4 seconds ($diff)");
+}
+
+{
+    my $q = Queue::Q4M->connect(
+        connect_info => [ $dsn, $username, $password ]
+    );
+    ok($q);
+    isa_ok($q, "Queue::Q4M");
+
+    # Insert into a random table
+    my $table = $tables[rand(@tables)];
+    $q->insert( $table , { v => 1 } );
+
+    my $max = 1;
+    my $count = 0;
+    while (my $which = $q->next(@tables, 5)) {
+        is ($which, $table, "got from the table that we inserted" );
+        my ($v) = $q->fetch( $which, 'v' );
+        $count++;
+        last if $count >= $max;
+    }
+}
+
+END
+{
+    local $@;
+    eval {
+        foreach my $table (@tables) {
+            $dbh->do("DROP TABLE $table");
+        }   
+    };
+}
