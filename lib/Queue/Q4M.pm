@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 63985 2008-06-23T12:45:18.967810Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 64066 2008-06-24T04:52:43.377517Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -57,7 +57,7 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00003';
+our $VERSION = '0.00004';
 
 
 sub BUILD
@@ -125,7 +125,7 @@ sub next
     # Cache this statement handler so we don't unnecessarily create
     # string or handles
     my $sth = $self->_next_sth;
-    if (! $sth) {
+    if (! $sth || @args) {
         my $dbh = $self->_dbh;
         my $sql = sprintf(
             "SELECT queue_wait(%s)",
@@ -154,12 +154,12 @@ sub next
 
     my $table = ($rv > 0 && $index > 0) ? $tables[$index - 1] : undef;
     my $res = Queue::Q4M::Result->new(
-        rv         => $rv > 0,
+        rv         => defined $table,
         table      => $table,
         on_release => sub { $self->__table(undef) }
     );
 
-    if ($rv > 0) {
+    if (defined $table) {
         $self->__table($table);
     }
     $self->__res($res);

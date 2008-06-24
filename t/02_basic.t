@@ -6,7 +6,7 @@ BEGIN
     if (! exists $ENV{Q4M_DSN} ) {
         plan(skip_all => "Define environment variables Q4M_DSN, and optionally Q4M_USER and Q4M_PASSWORD as appropriate");
     } else {
-        plan(tests => 42);
+        plan(tests => 45);
     }
     use_ok("Queue::Q4M");
 }
@@ -95,6 +95,22 @@ EOSQL
         last if $count >= $max;
     }
 }
+
+{
+    my $table   = $tables[0];
+    my $timeout = 1;
+    my $q = Queue::Q4M->connect(
+        connect_info => [ $dsn, $username, $password ]
+    );
+    ok($q);
+    isa_ok($q, "Queue::Q4M");
+
+    my $rv = $q->next($table, $timeout);
+    ok( ! $rv, "should return false. got (" . ($rv || '') . ")" );
+
+    $q->disconnect;
+}
+
 
 END
 {

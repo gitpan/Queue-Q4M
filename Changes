@@ -1,6 +1,12 @@
 Changes
 =======
 
+0.00004 - 24 Jun 2008
+  - Fix a silly problem where passing arguments to next() wouldn't
+    invalidate the previously executed statement
+  - Fix a problem where $rv was being checked against success.
+    The truth is, $rv is always a success - q4m returns 1 row regardless.
+
 0.00003 - 23 Jun 2008
   - Fix a nasty bug in next()
   - Experimental: You can omit the table name if it's right after ->next call
