@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 64066 2008-06-24T04:52:43.377517Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 64779 2008-07-02T10:07:30.009782Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -57,7 +57,7 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00004';
+our $VERSION = '0.00005';
 
 
 sub BUILD
@@ -116,8 +116,8 @@ sub next
     my @tables = 
         grep { !/^\d+$/ }
         map  {
-            s/\[.*$//;
-            $_
+            (my $v = $_) =~ s/:.*$//;
+            $v
         }
         @args
     ;
@@ -379,6 +379,10 @@ These are defined as part of Moose infrastructure
 =head1 AUTHOR
 
 Copyright (c) 2008 Daisuke Maki E<lt>daisuke@endeworks.jpE<gt>
+
+=head1 CONTRIBUTOR
+
+Taro Funaki 
 
 =head1 LICENSE
 
