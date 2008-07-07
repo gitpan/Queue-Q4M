@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 64779 2008-07-02T10:07:30.009782Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 65153 2008-07-07T05:39:06.213286Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -57,7 +57,7 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00005';
+our $VERSION = '0.00006';
 
 
 sub BUILD
@@ -231,6 +231,12 @@ sub disconnect
     }
 }
 
+sub clear
+{
+    my ($self, $table) = @_;
+    return $self->_dbh->do("DELETE FROM $table");
+}
+
 sub DEMOLISH
 {
     my $self = shift;
@@ -361,6 +367,10 @@ between column names and their respective values.
 
 For backwards compatibility, you may omit $table if you specified $table
 in the constructor.
+
+=head2 clear($table)
+
+Deletes everything the specified queue. Be careful!
 
 =head2 dbh
 

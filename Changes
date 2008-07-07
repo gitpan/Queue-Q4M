@@ -1,6 +1,9 @@
 Changes
 =======
 
+0.00006 - 07 Jul 2008
+  - Add clear() method
+
 0.00005 - 02 Jul 2008
   - Fix a problem where conditional tables specifiers weren't handled
     correctly. Patched by Taro Funaki.
