@@ -1,6 +1,10 @@
 Changes
 =======
 
+0.00008 - 08 Jul 2008
+  - Correctly auto-reconnect after a database disconnect.
+    Fixed by Taro Funaki.
+
 0.00007 - 08 Jul 2008
   - Add extended benchmarks under misc
   - No code change

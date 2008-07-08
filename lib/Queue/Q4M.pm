@@ -1,10 +1,17 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 65254 2008-07-08T02:22:30.031187Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 65260 2008-07-08T03:02:44.358258Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
 
 package Queue::Q4M;
 use Moose;
+
+has 'auto_reconnect' => (
+    is => 'rw',
+    isa => 'Bool',
+    required => 1,
+    default => 1,
+);
 
 has 'connect_info' => (
     is => 'rw',
@@ -57,7 +64,7 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00007';
+our $VERSION = '0.00008';
 
 
 sub BUILD
@@ -99,6 +106,7 @@ sub dbh
     my $dbh = $self->_dbh;
 
     if (! $dbh || ! $dbh->ping) {
+        $self->auto_reconnect or die "not connect";
         $dbh = $self->_connect();
         $self->_dbh( $dbh );
     }
@@ -126,7 +134,7 @@ sub next
     # string or handles
     my $sth = $self->_next_sth;
     if (! $sth || @args) {
-        my $dbh = $self->_dbh;
+        my $dbh = $self->dbh;
         my $sql = sprintf(
             "SELECT queue_wait(%s)",
             join(',', (('?') x scalar(@args)))
@@ -213,7 +221,7 @@ sub insert
     my $table = shift;
 
     my ($sql, @bind) = $self->sql_maker->insert($table, @_);
-    my $dbh = $self->_dbh;
+    my $dbh = $self->dbh;
     my $sth = $dbh->prepare($sql);
     my $rv = $sth->execute(@bind);
     $sth->finish;
@@ -234,7 +242,7 @@ sub disconnect
 sub clear
 {
     my ($self, $table) = @_;
-    return $self->_dbh->do("DELETE FROM $table");
+    return $self->dbh->do("DELETE FROM $table");
 }
 
 sub DEMOLISH

@@ -6,7 +6,7 @@ BEGIN
     if (! exists $ENV{Q4M_DSN} ) {
         plan(skip_all => "Define environment variables Q4M_DSN, and optionally Q4M_USER and Q4M_PASSWORD as appropriate");
     } else {
-        plan(tests => 64);
+        plan(tests => 68);
     }
     use_ok("Queue::Q4M");
 }
@@ -139,6 +139,21 @@ EOSQL
 
     $dbh->do("DELETE FROM $table");
     $q->disconnect;
+}
+
+{
+    my $table   = $tables[0];
+    my $timeout = 1;
+    my $q = Queue::Q4M->connect(
+        connect_info => [ $dsn, $username, $password ]
+    );
+    ok($q);
+    isa_ok($q, "Queue::Q4M");
+
+    $q->disconnect;
+
+    ok($q->insert($table, { v => 1 }));
+    ok($q->clear($table));
 }
 
 END
