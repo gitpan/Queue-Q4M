@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 65153 2008-07-07T05:39:06.213286Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 65254 2008-07-08T02:22:30.031187Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -57,7 +57,7 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00006';
+our $VERSION = '0.00007';
 
 
 sub BUILD
