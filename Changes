@@ -1,6 +1,14 @@
 Changes
 =======
 
+0.00009 - 09 Jul 2008
+  - Various tweaks for performance improvement. Probably 3 times as fast
+    compared to 0.00002.
+  - Recent versions of q4m no longer needed to specify the tables
+    as database.table, so removed that logic.
+  - Inline fetch_* methods, so that they can utilize the selectraw_* methods
+  - Remove unnecessary caching.
+
 0.00008 - 08 Jul 2008
   - Correctly auto-reconnect after a database disconnect.
     Fixed by Taro Funaki.

@@ -9,5 +9,7 @@ requires('DBI');
 requires('Scope::Guard');
 requires('SQL::Abstract');
 
+no_index(directory => 'misc');
+
 auto_include;
 WriteAll;

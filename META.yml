@@ -11,6 +11,7 @@ meta-spec:
 name: Queue-Q4M
 no_index:
   directory:
+    - misc
     - inc
     - t
 requires:
@@ -18,4 +19,4 @@ requires:
   Moose: 0
   SQL::Abstract: 0
   Scope::Guard: 0
-version: 0.00008
+version: 0.00009

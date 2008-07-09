@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 65260 2008-07-08T03:02:44.358258Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 65388 2008-07-09T02:50:44.370275Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -19,11 +19,6 @@ has 'connect_info' => (
     required => 1,
 );
 
-has 'database' => (
-    is => 'rw',
-    isa => 'Str'
-);
-
 has 'sql_maker' => (
     is => 'rw',
     isa => 'SQL::Abstract',
@@ -34,17 +29,6 @@ has 'sql_maker' => (
 has '_dbh' => (
     is => 'rw',
     isa => 'Maybe[DBI::db]',
-);
-
-has '_next_sth' => (
-    is => 'rw',
-    isa => 'Maybe[DBI::st]'
-);
-
-has '_next_args' => (
-    is => 'rw',
-    isa => 'ArrayRef',
-    auto_deref => 1,
 );
 
 has '__table' => (
@@ -64,23 +48,7 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00008';
-
-
-sub BUILD
-{
-    my $self = shift;
-
-    my $connect_info = $self->connect_info;
-
-    # XXX This is a hack. Hopefully it will be fixed in q4m
-    if (! $self->database ) {
-        $connect_info->[0] =~ /(?:dbname|database)=([^;]+)/;
-        my $database = $1;
-        $self->database($1);
-    }
-    $self;
-}
+our $VERSION = '0.00009';
 
 sub connect
 {
@@ -132,35 +100,14 @@ sub next
 
     # Cache this statement handler so we don't unnecessarily create
     # string or handles
-    my $sth = $self->_next_sth;
-    if (! $sth || @args) {
-        my $dbh = $self->dbh;
-        my $sql = sprintf(
-            "SELECT queue_wait(%s)",
-            join(',', (('?') x scalar(@args)))
-        );
-        my $timeout = $args[-1] =~ /^\d+$/ ? pop @args  : undef;
-        my @binds   = map {
-            # if no dot exists, then add database\. to the beginning
-            if ( index('.', $_) < 0 ) {
-                $_ = join('.', $self->database, $_);
-            }
-            $_
-        } @args;
-        if ($timeout) {
-            push @binds, $timeout;
-        }
+    my $dbh = $self->dbh;
+    my $sql = sprintf(
+        "SELECT queue_wait(%s)",
+        join(',', (('?') x scalar(@args)))
+    );
+    my ($index) = $dbh->selectrow_array($sql, undef, @args);
 
-        $sth = $dbh->prepare( $sql ) ;
-        $self->_next_sth( $sth );
-        $self->_next_args( \@binds );
-    }
-
-    my $rv = $sth->execute($self->_next_args);
-    my ($index) = $sth->fetchrow_array;
-    $sth->finish;
-
-    my $table = ($rv > 0 && $index > 0) ? $tables[$index - 1] : undef;
+    my $table = $index > 0 ? $tables[$index - 1] : undef;
     my $res = Queue::Q4M::Result->new(
         rv         => defined $table,
         table      => $table,
@@ -174,45 +121,24 @@ sub next
     return $res;
 }
 
-sub _fetch_execute
-{
-    my $self = shift;
-    my $table = (!@_ || (ref $_[0] && eval { ! $_[0]->isa('Queue::Q4M::Result') })) ? $self->__table : shift;
-    $table or die "no table";
-
-    my ($sql, @bind) = $self->sql_maker->select($table, @_);
-    my $dbh = $self->dbh;
-    my $sth = $dbh->prepare($sql);
-    $sth->execute(@bind); # XXX - currently always empty
-    return $sth;
-}
-
 *fetch = \&fetch_array;
-sub fetch_array
-{
-    my $self = shift;
-    my $sth  = $self->_fetch_execute(@_);
-    my @ret  = $sth->fetchrow_array();
-    $sth->finish;
-    @ret;
-}
 
-sub fetch_arrayref
+BEGIN
 {
-    my $self = shift;
-    my $sth  = $self->_fetch_execute(@_);
-    my $ret  = $sth->fetchrow_arrayref();
-    $sth->finish;
-    $ret;
-}
+    foreach my $type qw(array arrayref hashref) {
+        eval sprintf( <<'EOSUB', $type, $type );
+            sub fetch_%s {
+                my $self = shift;
+                my $table = (!@_ || blessed $_[0] ne 'Queue::Q4M::Result') ? $self->__table : shift;
+                $table or die "no table";
 
-sub fetch_hashref
-{
-    my $self = shift;
-    my $sth  = $self->_fetch_execute(@_);
-    my $ret  =  $sth->fetchrow_hashref();
-    $sth->finish;
-    $ret;
+                my ($sql, @bind) = $self->sql_maker->select($table, @_);
+                my $dbh = $self->dbh;
+                return $dbh->selectrow_%s($sql, undef, @bind);
+            }
+EOSUB
+        die if $@;
+    }
 }
 
 sub insert
