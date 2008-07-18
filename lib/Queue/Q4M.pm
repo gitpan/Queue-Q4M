@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 65388 2008-07-09T02:50:44.370275Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 66427 2008-07-18T07:42:39.678148Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -48,7 +48,7 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00009';
+our $VERSION = '0.00010';
 
 sub connect
 {
@@ -129,7 +129,7 @@ BEGIN
         eval sprintf( <<'EOSUB', $type, $type );
             sub fetch_%s {
                 my $self = shift;
-                my $table = (!@_ || blessed $_[0] ne 'Queue::Q4M::Result') ? $self->__table : shift;
+                my $table = (!@_ || ! blessed $_[0] || ! $_[0]->isa('Queue::Q4M::Result')) ? $self->__table : shift;
                 $table or die "no table";
 
                 my ($sql, @bind) = $self->sql_maker->select($table, @_);

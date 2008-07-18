@@ -1,6 +1,10 @@
 Changes
 =======
 
+0.00010 - 18 Jul 2008
+  - Be slightly be more paranoid about checking parameter type for
+    fetch_*() methods.
+
 0.00009 - 09 Jul 2008
   - Various tweaks for performance improvement. Probably 3 times as fast
     compared to 0.00002.
