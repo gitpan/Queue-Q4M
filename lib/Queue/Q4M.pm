@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 66427 2008-07-18T07:42:39.678148Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 67347 2008-07-28T10:10:40.696016Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -48,7 +48,9 @@ no Moose;
 use DBI;
 use SQL::Abstract;
 
-our $VERSION = '0.00010';
+our $VERSION = '0.00011';
+
+use constant Q4M_MINIMUM_VERSION => '0.1';
 
 sub connect
 {
@@ -57,7 +59,33 @@ sub connect
         $self = $self->new(@_);
     }
 
-    $self->_dbh( $self->_connect() );
+    if (my $old = $self->_dbh()) {
+        $old->disconnect();
+    }
+
+    my $dbh = $self->_connect();
+    $self->_dbh( $dbh );
+
+    # Make sure we have the minimum supported API version
+    # (or, a Q4M enabled mysql, for that matter)
+    my $version;
+    eval {
+        my $sth = $dbh->prepare(<<'        EOSQL');
+            SELECT PLUGIN_VERSION from 
+                information_schema.plugins
+            WHERE plugin_name = ?
+        EOSQL
+        $sth->execute('QUEUE');
+        $sth->bind_columns(\$version);
+        $sth->fetchrow_arrayref;
+        $sth->finish;
+    };
+    warn if $@;
+
+    if (! $version || $version < Q4M_MINIMUM_VERSION) {
+        confess( "Connected database does not meet the minimum required q4m version (" . Q4M_MINIMUM_VERSION . "). Got version " . (defined $version ? $version : '(undef)'  ) );
+    }
+
     $self;
 }
 

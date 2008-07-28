@@ -6,7 +6,7 @@ BEGIN
     if (! exists $ENV{Q4M_DSN} ) {
         plan(skip_all => "Define environment variables Q4M_DSN, and optionally Q4M_USER and Q4M_PASSWORD as appropriate");
     } else {
-        plan(tests => 68);
+        plan(tests => 73);
     }
     use_ok("Queue::Q4M");
 }
@@ -154,6 +154,21 @@ EOSQL
 
     ok($q->insert($table, { v => 1 }));
     ok($q->clear($table));
+}
+
+{
+    my $table   = $tables[0];
+    my $timeout = 1;
+    my $q = Queue::Q4M->connect(
+        connect_info => [ $dsn, $username, $password ]
+    );
+    ok($q);
+    isa_ok($q, "Queue::Q4M");
+
+    ok( $q->insert($table, { v => 1 }) );
+    ok( $q->next($table) );
+
+    ok( ! $q->fetch($table), "cannot pass strings as table name" );
 }
 
 END
