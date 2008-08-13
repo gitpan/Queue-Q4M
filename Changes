@@ -1,7 +1,11 @@
 Changes
 =======
 
-0.00010 - 28 Jul 2008
+0.00012 - 13 Aug 2008
+  - Implement Queue::Q4M::Status
+  - Require q4m 0.8 or greater
+
+0.00011 - 28 Jul 2008
   - Always check for minimum required verion of q4m at connect time.
     (the same check will fail if the connected database does not support q4m)
 

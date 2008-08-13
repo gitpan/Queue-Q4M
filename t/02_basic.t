@@ -168,6 +168,8 @@ EOSQL
     ok( $q->insert($table, { v => 1 }) );
     ok( $q->next($table) );
 
+    # XXX - Silence warnings here, they worry people
+    local $SIG{__WARN__} = sub{};
     ok( ! $q->fetch($table), "cannot pass strings as table name" );
 }
 

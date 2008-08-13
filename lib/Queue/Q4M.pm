@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 67347 2008-07-28T10:10:40.696016Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 68629 2008-08-13T08:18:56.367917Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -47,10 +47,12 @@ no Moose;
 
 use DBI;
 use SQL::Abstract;
+use Queue::Q4M::Status;
 
-our $VERSION = '0.00011';
+our $AUTHORITY = 'cpan:DMAKI';
+our $VERSION   = '0.00012';
 
-use constant Q4M_MINIMUM_VERSION => '0.1';
+use constant Q4M_MINIMUM_VERSION => '0.8';
 
 sub connect
 {
@@ -199,6 +201,10 @@ sub clear
     return $self->dbh->do("DELETE FROM $table");
 }
 
+sub status {
+    return Queue::Q4M::Status->fetch( shift->dbh );
+}
+
 sub DEMOLISH
 {
     my $self = shift;
@@ -334,6 +340,10 @@ in the constructor.
 
 Deletes everything the specified queue. Be careful!
 
+=head2 status()
+
+Returns an instance of Queue::Q4M::Status (actually, a subclass there of).
+
 =head2 dbh
 
 Returns the database handle after making sure that it's connected.
@@ -347,6 +357,10 @@ Disconnects.
 =head2 DEMOLISH
 
 These are defined as part of Moose infrastructure
+
+=head2 Q4M_MINIMUM_VERSION
+
+The minimum version of q4m that Queue::Q4M supports
 
 =head1 AUTHOR
 

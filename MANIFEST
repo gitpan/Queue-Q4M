@@ -9,6 +9,7 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Queue/Q4M.pm
+lib/Queue/Q4M/Status.pm
 Makefile.PL
 MANIFEST			This list of files
 META.yml
@@ -19,5 +20,6 @@ misc/lib/Queue/Q4M/Benchmark/Plugin/Conditional.pm
 misc/lib/Queue/Q4M/Benchmark/Plugin/Default.pm
 t/01_load.t
 t/02_basic.t
+t/03_status.t
 t/99_pod-coverage.t
 t/99_pod.t
