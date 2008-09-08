@@ -3,6 +3,7 @@
 package Queue::Q4M::Status;
 use Moose;
 use DBI;
+use Carp();
 no Moose;
 
 sub fetch {
@@ -11,7 +12,7 @@ sub fetch {
     # anonymous class via moose. Wicked!
 
     my $class = shift;
-    my $dbh   = shift || confess "Q4M requires a database handle";
+    my $dbh   = shift || Carp::confess("Q4M requires a database handle");
 
     my $sth = $dbh->prepare( "SHOW ENGINE QUEUE STATUS" );
 

@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 68629 2008-08-13T08:18:56.367917Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 72433 2008-09-08T14:02:47.679190Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -45,12 +45,13 @@ __PACKAGE__->meta->make_immutable;
 
 no Moose;
 
+use Carp();
 use DBI;
 use SQL::Abstract;
 use Queue::Q4M::Status;
 
 our $AUTHORITY = 'cpan:DMAKI';
-our $VERSION   = '0.00012';
+our $VERSION   = '0.00013';
 
 use constant Q4M_MINIMUM_VERSION => '0.8';
 
@@ -85,7 +86,7 @@ sub connect
     warn if $@;
 
     if (! $version || $version < Q4M_MINIMUM_VERSION) {
-        confess( "Connected database does not meet the minimum required q4m version (" . Q4M_MINIMUM_VERSION . "). Got version " . (defined $version ? $version : '(undef)'  ) );
+        Carp::confess( "Connected database does not meet the minimum required q4m version (" . Q4M_MINIMUM_VERSION . "). Got version " . (defined $version ? $version : '(undef)'  ) );
     }
 
     $self;
