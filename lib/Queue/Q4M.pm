@@ -1,16 +1,25 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 72433 2008-09-08T14:02:47.679190Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 96972 2008-12-22T05:31:29.374252Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
 
 package Queue::Q4M;
-use Moose;
+use Squirrel;
+use Carp();
+use DBI;
+use SQL::Abstract;
+use Queue::Q4M::Status;
 
 has 'auto_reconnect' => (
     is => 'rw',
     isa => 'Bool',
     required => 1,
     default => 1,
+);
+
+has '_connect_pid' => (
+    is => 'rw',
+    isa => 'Int'
 );
 
 has 'connect_info' => (
@@ -28,30 +37,23 @@ has 'sql_maker' => (
 
 has '_dbh' => (
     is => 'rw',
-    isa => 'Maybe[DBI::db]',
 );
 
 has '__table' => (
     is => 'rw',
-    isa => 'Maybe[Str]'
 );
 
 has '__res' => (
     is => 'rw',
-    isa => 'Maybe[Queue::Q4M::Result]'
+    isa => 'Undef | Queue::Q4M::Result'
 );
 
 __PACKAGE__->meta->make_immutable;
 
-no Moose;
-
-use Carp();
-use DBI;
-use SQL::Abstract;
-use Queue::Q4M::Status;
+no Squirrel;
 
 our $AUTHORITY = 'cpan:DMAKI';
-our $VERSION   = '0.00013';
+our $VERSION   = '0.00014';
 
 use constant Q4M_MINIMUM_VERSION => '0.8';
 
@@ -104,10 +106,12 @@ sub dbh
     my $self = shift;
     my $dbh = $self->_dbh;
 
-    if (! $dbh || ! $dbh->ping) {
+    my $pid = $self->_connect_pid;
+    if ( ($pid || '') ne $$ || ! $dbh || ! $dbh->ping) {
         $self->auto_reconnect or die "not connect";
         $dbh = $self->_connect();
         $self->_dbh( $dbh );
+        $self->_connect_pid($$);
     }
     return $dbh;
 }
@@ -160,7 +164,14 @@ BEGIN
         eval sprintf( <<'EOSUB', $type, $type );
             sub fetch_%s {
                 my $self = shift;
-                my $table = (!@_ || ! blessed $_[0] || ! $_[0]->isa('Queue::Q4M::Result')) ? $self->__table : shift;
+                my $table = shift;
+                $table ||= $self->__table;
+                if (Scalar::Util::blessed $table &&
+                    $table->isa('Queue::Q4M::Result'))
+                {
+                    $table = $table->[1];
+                }
+
                 $table or die "no table";
 
                 my ($sql, @bind) = $self->sql_maker->select($table, @_);
@@ -188,7 +199,7 @@ sub insert
 sub disconnect
 {
     my $self = shift;
-    my $dbh  = $self->_dbh;
+    my $dbh  = $self->dbh;
     if ($dbh) {
         $dbh->do("select queue_end()");
         $dbh->disconnect;
@@ -310,7 +321,7 @@ queue_wait() on the given table.
 
 =head2 fetch_array
 
-Fetches the next available row. Takes the list of columns to be fetched.
+Fetches the next available row. Takes a table name and the list of columns to be fetched.
 
   my ($col1, $col2, $col3) = $q->fetch( $table, [ qw(col1 col2 col3) ] );
 

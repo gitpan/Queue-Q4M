@@ -1,41 +1,16 @@
 use strict;
-use Test::More;
+use lib("t/lib");
+use Test::Queue::Q4M (tests => 73);
 
 BEGIN
 {
-    if (! exists $ENV{Q4M_DSN} ) {
-        plan(skip_all => "Define environment variables Q4M_DSN, and optionally Q4M_USER and Q4M_PASSWORD as appropriate");
-    } else {
-        plan(tests => 73);
-    }
     use_ok("Queue::Q4M");
 }
 
-
-my $dsn      = $ENV{Q4M_DSN};
-my $username = $ENV{Q4M_USER};
-my $password = $ENV{Q4M_PASSWORD};
-my @tables   = map {
-    join('_', qw(q4m test table), $_, $$)
-} 1..10;
-
-if ($dsn !~ /^dbi:mysql:/i) {
-    $dsn = "dbi:mysql:dbname=$dsn";
-}
-
-my $dbh = DBI->connect($dsn, $username, $password);
-foreach my $table (@tables) {
-    $dbh->do(<<EOSQL);
-        CREATE TABLE IF NOT EXISTS $table (
-            v INTEGER NOT NULL
-        ) ENGINE=queue;
-EOSQL
-}
-
 {
-    my $table = $tables[0];
+    my $table = $Test::Queue::Q4M::TABLES[0];
     my $q = Queue::Q4M->connect(
-        connect_info => [ $dsn, $username, $password ]
+        connect_info => \@Test::Queue::Q4M::CONNECT_INFO,
     );
     ok($q);
     isa_ok($q, "Queue::Q4M");
@@ -57,10 +32,10 @@ EOSQL
 }
 
 {
-    my $table = $tables[0];
+    my $table = $Test::Queue::Q4M::TABLES[0];
     my $q = Queue::Q4M->connect(
         table => $table,
-        connect_info => [ $dsn, $username, $password ]
+        connect_info => \@Test::Queue::Q4M::CONNECT_INFO,
     );
     ok($q);
     isa_ok($q, "Queue::Q4M");
@@ -77,18 +52,18 @@ EOSQL
 
 {
     my $q = Queue::Q4M->connect(
-        connect_info => [ $dsn, $username, $password ]
+        connect_info => \@Test::Queue::Q4M::CONNECT_INFO,
     );
     ok($q);
     isa_ok($q, "Queue::Q4M");
 
     # Insert into a random table
-    my $table = $tables[rand(@tables)];
+    my $table = $Test::Queue::Q4M::TABLES[rand(@Test::Queue::Q4M::TABLES)];
     $q->insert( $table , { v => 1 } );
 
     my $max = 1;
     my $count = 0;
-    while (my $which = $q->next(@tables, 5)) {
+    while (my $which = $q->next(@Test::Queue::Q4M::TABLES, 5)) {
         is ($which, $table, "got from the table that we inserted" );
         my ($v) = $q->fetch( $which, 'v' );
         $count++;
@@ -97,10 +72,10 @@ EOSQL
 }
 
 {
-    my $table   = $tables[0];
+    my $table   = $Test::Queue::Q4M::TABLES[0];
     my $timeout = 1;
     my $q = Queue::Q4M->connect(
-        connect_info => [ $dsn, $username, $password ]
+        connect_info => \@Test::Queue::Q4M::CONNECT_INFO,
     );
     ok($q);
     isa_ok($q, "Queue::Q4M");
@@ -112,10 +87,10 @@ EOSQL
 }
 
 {
-    my $table   = $tables[0];
+    my $table   = $Test::Queue::Q4M::TABLES[0];
     my $timeout = 1;
     my $q = Queue::Q4M->connect(
-        connect_info => [ $dsn, $username, $password ]
+        connect_info => \@Test::Queue::Q4M::CONNECT_INFO,
     );
     ok($q);
     isa_ok($q, "Queue::Q4M");
@@ -137,15 +112,15 @@ EOSQL
 
     is($count, 16);
 
-    $dbh->do("DELETE FROM $table");
+    $q->dbh->do("DELETE FROM $table");
     $q->disconnect;
 }
 
 {
-    my $table   = $tables[0];
+    my $table   = $Test::Queue::Q4M::TABLES[0];
     my $timeout = 1;
     my $q = Queue::Q4M->connect(
-        connect_info => [ $dsn, $username, $password ]
+        connect_info => \@Test::Queue::Q4M::CONNECT_INFO,
     );
     ok($q);
     isa_ok($q, "Queue::Q4M");
@@ -157,27 +132,26 @@ EOSQL
 }
 
 {
-    my $table   = $tables[0];
+    my $table   = $Test::Queue::Q4M::TABLES[0];
     my $timeout = 1;
     my $q = Queue::Q4M->connect(
-        connect_info => [ $dsn, $username, $password ]
+        connect_info => \@Test::Queue::Q4M::CONNECT_INFO,
     );
     ok($q);
     isa_ok($q, "Queue::Q4M");
 
-    ok( $q->insert($table, { v => 1 }) );
-    ok( $q->next($table) );
+    ok( $q->insert($table, { v => 1 }), "insert" );
+    ok( $q->next($table), "next" );
 
-    # XXX - Silence warnings here, they worry people
-    local $SIG{__WARN__} = sub{};
-    ok( ! $q->fetch($table), "cannot pass strings as table name" );
+    ok( $q->fetch($table) );
 }
 
 END
 {
     local $@;
     eval {
-        foreach my $table (@tables) {
+        my $dbh = DBI->connect(@Test::Queue::Q4M::CONNECT_INFO);
+        foreach my $table (@Test::Queue::Q4M::TABLES) {
             $dbh->do("DROP TABLE $table");
         }   
     };

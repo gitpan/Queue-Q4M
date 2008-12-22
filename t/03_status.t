@@ -1,13 +1,9 @@
 use strict;
-use Test::More;
+use lib("t/lib");
+use Test::Queue::Q4M (tests => 38);
 
 BEGIN
 {
-    if (! exists $ENV{Q4M_DSN} ) {
-        plan(skip_all => "Define environment variables Q4M_DSN, and optionally Q4M_USER and Q4M_PASSWORD as appropriate");
-    } else {
-        plan(tests => 38);
-    }
     use_ok("Queue::Q4M");
 }
 

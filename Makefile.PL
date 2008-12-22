@@ -4,7 +4,7 @@ use inc::Module::Install;
 name('Queue-Q4M');
 all_from('lib/Queue/Q4M.pm');
 
-requires('Moose');
+requires('Mouse' => '0.13');
 requires('DBI');
 requires('Scope::Guard');
 requires('SQL::Abstract');

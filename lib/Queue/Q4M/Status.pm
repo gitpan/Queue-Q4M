@@ -1,10 +1,9 @@
 # $Id$
 
 package Queue::Q4M::Status;
-use Moose;
+use strict;
 use DBI;
 use Carp();
-no Moose;
 
 sub fetch {
     # Black magic. Since I don't know if the parameters will be the same
@@ -25,23 +24,20 @@ sub fetch {
     $sth->finish;
 
     # now parse the status
-    foreach my $line (split(/\r?\n/, $status)) {
-        next unless $line =~ /^([\w_]+)\s+(\d+)$/;
-        $attributes{$1} = $2;
+    { no strict 'refs';
+        foreach my $line (split(/\r?\n/, $status)) {
+            next unless $line =~ /^([\w_]+)\s+(\d+)$/;
+
+            my ($name, $value) = ($1, $2);
+            if (! defined &{$class.'::'.$name}) {
+                *{$class.'::'.$name} = sub { shift->{$name} };
+            }
+            $attributes{$1} = $2;
+        }
     }
-
-    my $metaclass = Moose::Meta::Class->create_anon_class(
-        superclasses => [ 'Queue::Q4M::Status' ],
-        cache => 1,
-        attributes => [
-            map { Moose::Meta::Attribute->new($_ => ( is => 'rw') ) }
-                keys %attributes
-        ] 
-    );   
-
-    $metaclass->new_object( %attributes );
+    return bless {%attributes}, $class;
 }
-             
+
 1;
 
 __END__

@@ -1,6 +1,12 @@
 Changes
 =======
 
+0.00014 - 22 Dec 2008
+  - Per popular demand for less dependency, we shall use Squirrel.
+    Unless you explicitly loaded Moose, it will fall back to
+    the lighter Mouse
+  - Refactor tests
+
 0.00013 - 08 Sep 2008
   - Recent versions of Moose (properly) unimport confess(), which breaks
     my code depending on it.
