@@ -1,6 +1,11 @@
 Changes
 =======
 
+0.00015 - 06 Jan 2009
+  - Unintended test went into the dist. For now, just skip the test
+    all together.
+  - Unintended .pm went into the dist. remove Fast.pm
+
 0.00014 - 22 Dec 2008
   - Per popular demand for less dependency, we shall use Squirrel.
     Unless you explicitly loaded Moose, it will fall back to

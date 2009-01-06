@@ -9,7 +9,6 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Queue/Q4M.pm
-lib/Queue/Q4M/Fast.pm
 lib/Queue/Q4M/Status.pm
 Makefile.PL
 MANIFEST			This list of files
