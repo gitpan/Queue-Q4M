@@ -1,6 +1,13 @@
 Changes
 =======
 
+0.00016 - 13 Jan 2009
+  - At least in my environment (Moose 0.64, Mouse 0.14), using 
+    Queue::Q4M::Result in a union type causes Moose to complain, but not Mouse.
+    The fix is to explicitly declare it as a class_type('Queue::Q4M::Result'),
+    which isn't quite elegant (this release does a very silly workaround to 
+    overcome this).
+
 0.00015 - 06 Jan 2009
   - Unintended test went into the dist. For now, just skip the test
     all together.

@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 97823 2009-01-06T00:05:19.639787Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 98485 2009-01-13T11:15:58.922402Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -9,6 +9,16 @@ use Carp();
 use DBI;
 use SQL::Abstract;
 use Queue::Q4M::Status;
+
+if ($INC{'Moose.pm'}) {
+    # XXX - hack hack hack
+    eval <<"    EOCODE";
+        use Moose::Util::TypeConstraints;
+        class_type 'Queue::Q4M::Result';
+        no Moose::Util::TypeConstraints;
+    EOCODE
+}
+
 
 has 'auto_reconnect' => (
     is => 'rw',
@@ -53,7 +63,7 @@ __PACKAGE__->meta->make_immutable;
 no Squirrel;
 
 our $AUTHORITY = 'cpan:DMAKI';
-our $VERSION   = '0.00015';
+our $VERSION   = '0.00016';
 
 use constant Q4M_MINIMUM_VERSION => '0.8';
 
