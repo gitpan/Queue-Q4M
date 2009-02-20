@@ -1,24 +1,17 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 98485 2009-01-13T11:15:58.922402Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 100933 2009-02-20T01:08:15.463490Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
 
 package Queue::Q4M;
-use Squirrel;
+use Any::Moose;
+use Any::Moose '::Util::TypeConstraints';
 use Carp();
 use DBI;
 use SQL::Abstract;
 use Queue::Q4M::Status;
 
-if ($INC{'Moose.pm'}) {
-    # XXX - hack hack hack
-    eval <<"    EOCODE";
-        use Moose::Util::TypeConstraints;
-        class_type 'Queue::Q4M::Result';
-        no Moose::Util::TypeConstraints;
-    EOCODE
-}
-
+class_type 'Queue::Q4M::Result';
 
 has 'auto_reconnect' => (
     is => 'rw',
@@ -55,15 +48,16 @@ has '__table' => (
 
 has '__res' => (
     is => 'rw',
-    isa => 'Undef | Queue::Q4M::Result'
+    isa => 'Maybe[Queue::Q4M::Result]'
 );
 
 __PACKAGE__->meta->make_immutable;
 
-no Squirrel;
+no Any::Moose;
+no Any::Moose '::Util::TypeConstraints';
 
 our $AUTHORITY = 'cpan:DMAKI';
-our $VERSION   = '0.00016';
+our $VERSION   = '0.00017';
 
 use constant Q4M_MINIMUM_VERSION => '0.8';
 

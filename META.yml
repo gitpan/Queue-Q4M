@@ -3,7 +3,7 @@ abstract: 'Simple Interface To q4m'
 author:
   - 'Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>'
 distribution_type: module
-generated_by: 'Module::Install version 0.77'
+generated_by: 'Module::Install version 0.79'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -11,14 +11,14 @@ meta-spec:
 name: Queue-Q4M
 no_index:
   directory:
-    - misc
     - inc
+    - misc
     - t
 requires:
+  Any::Moose: 0.04
   DBI: 0
-  Mouse: 0.13
   SQL::Abstract: 0
   Scope::Guard: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.00016
+version: 0.00017

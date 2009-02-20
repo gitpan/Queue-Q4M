@@ -1,6 +1,9 @@
 Changes
 =======
 
+0.00017 - 20 Feb 2009
+  - s/Squirrel/Any::Moose/g
+
 0.00016 - 13 Jan 2009
   - At least in my environment (Moose 0.64, Mouse 0.14), using 
     Queue::Q4M::Result in a union type causes Moose to complain, but not Mouse.
