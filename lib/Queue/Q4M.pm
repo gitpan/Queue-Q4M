@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 100933 2009-02-20T01:08:15.463490Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 101248 2009-02-26T00:27:26.334865Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -18,6 +18,12 @@ has 'auto_reconnect' => (
     isa => 'Bool',
     required => 1,
     default => 1,
+);
+
+has 'owner_mode' => (
+    is => 'rw',
+    isa => 'Bool',
+    default => 0
 );
 
 has '_connect_pid' => (
@@ -48,7 +54,7 @@ has '__table' => (
 
 has '__res' => (
     is => 'rw',
-    isa => 'Maybe[Queue::Q4M::Result]'
+#    isa => 'Maybe[Queue::Q4M::Result]'
 );
 
 __PACKAGE__->meta->make_immutable;
@@ -57,7 +63,7 @@ no Any::Moose;
 no Any::Moose '::Util::TypeConstraints';
 
 our $AUTHORITY = 'cpan:DMAKI';
-our $VERSION   = '0.00017';
+our $VERSION   = '0.00018';
 
 use constant Q4M_MINIMUM_VERSION => '0.8';
 
@@ -146,7 +152,7 @@ sub next
     );
     my ($index) = $dbh->selectrow_array($sql, undef, @args);
 
-    my $table = $index > 0 ? $tables[$index - 1] : undef;
+    my $table = defined $index && $index > 0 ? $tables[$index - 1] : undef;
     my $res = Queue::Q4M::Result->new(
         rv         => defined $table,
         table      => $table,
@@ -156,7 +162,8 @@ sub next
     if (defined $table) {
         $self->__table($table);
     }
-    $self->__res($res);
+    $self->__res($res) if $res;
+    $self->owner_mode(1);
     return $res;
 }
 
@@ -180,6 +187,7 @@ BEGIN
 
                 my ($sql, @bind) = $self->sql_maker->select($table, @_);
                 my $dbh = $self->dbh;
+                $self->owner_mode(0);
                 return $dbh->selectrow_%s($sql, undef, @bind);
             }
 EOSUB
@@ -224,7 +232,11 @@ sub status {
 sub DEMOLISH
 {
     my $self = shift;
-    $self->disconnect;
+    local $@;
+    eval {
+        $self->dbh->do("SELECT queue_abort()") if $self->owner_mode;
+        $self->disconnect;
+    };
 }
 
 package

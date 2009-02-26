@@ -1,6 +1,10 @@
 Changes
 =======
 
+0.00018 - 26 Feb 2009
+  - There was a  class_type problem for __res causing problems. shikes.
+  - Properly call queue_abort() on demolish. otherwise we lose the last result
+
 0.00017 - 20 Feb 2009
   - s/Squirrel/Any::Moose/g
 
