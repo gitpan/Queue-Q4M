@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/t/lib/Test/Queue/Q4M.pm 96825 2008-12-19T08:24:15.109209Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/t/lib/Test/Queue/Q4M.pm 103793 2009-04-13T11:22:48.572118Z daisuke  $
 
 package Test::Queue::Q4M;
 use strict;
@@ -11,7 +11,7 @@ our @TABLES;
 
 sub import {
     shift;
-    my $dsn      = $ENV{Q4M_DSN} || 'dbi:mysql:dbname=q4m_test';
+    my $dsn      = $ENV{Q4M_DSN} || 'dbi:mysql:dbname=test_q4m';
     my $username = $ENV{Q4M_USER};
     my $password = $ENV{Q4M_PASSWORD};
 

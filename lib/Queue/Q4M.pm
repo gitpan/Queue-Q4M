@@ -1,4 +1,4 @@
-# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 101248 2009-02-26T00:27:26.334865Z daisuke  $
+# $Id: /mirror/coderepos/lang/perl/Queue-Q4M/trunk/lib/Queue/Q4M.pm 103794 2009-04-13T11:38:30.159603Z daisuke  $
 #
 # Copyright (c) 2008 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -63,7 +63,7 @@ no Any::Moose;
 no Any::Moose '::Util::TypeConstraints';
 
 our $AUTHORITY = 'cpan:DMAKI';
-our $VERSION   = '0.00018';
+our $VERSION   = '0.00019';
 
 use constant Q4M_MINIMUM_VERSION => '0.8';
 

@@ -1,6 +1,10 @@
 Changes
 =======
 
+0.00019 - 13 Apr 2009
+  - No code change
+  - Change test table name, so default mysql setup picks it up as a test db
+
 0.00018 - 26 Feb 2009
   - There was a  class_type problem for __res causing problems. shikes.
   - Properly call queue_abort() on demolish. otherwise we lose the last result
